@@ -1,5 +1,5 @@
 {
-    "name": "argayash/yii2-queue",
+    "name": "diretasistemas/yii2-queue",
     "description": "The queue extension for the Yii framework",
     "keywords": [
         "yii2",
@@ -9,13 +9,14 @@
     "license": "BSD-3-Clause",
     "authors": [
         {
-            "name": "Mitrofanov Nikolay",
-            "email": "mitrofanovnk@gmail.com"
+            "name": "Direta Sistemas",
+            "email": "desenvolvimento@diretasistemas.com.br"
         }
     ],
     "require": {
-        "yiisoft/yii2": "~2.0.0",
-        "amphp/amp": "^1"
+        "php": ">=5.4.0",
+        "yiisoft/yii2": "*",
+        "amphp/amp": "*"
     },
     "require-dev": {
 
