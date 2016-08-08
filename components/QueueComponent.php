@@ -8,8 +8,10 @@
 
 namespace yii\queue\components;
 
+use yii\base\Component;
 use yii\di\ServiceLocator;
 use yii\queue\exceptions\QueueException;
+use yii\queue\interfaces\QueueInterface;
 use yii\queue\models\MessageModel;
 
 /**
@@ -20,7 +22,7 @@ use yii\queue\models\MessageModel;
  * @property $regChannels ServiceLocator
  * @property $regWorkers ServiceLocator
  */
-class QueueComponent extends \yii\base\Component implements \yii\queue\interfaces\QueueInterface
+class QueueComponent extends Component implements QueueInterface
 {
     public $queueName = 'queue';
     public $channels = [];
@@ -119,6 +121,7 @@ class QueueComponent extends \yii\base\Component implements \yii\queue\interface
      */
     public function processMessage(MessageModel $messageModel, $watcherId = null)
     {
+        /** @var WorkerComponent $worker */
         if ($worker = $this->getWorker($messageModel->worker)) {
             $worker->setMessage($messageModel);
             $worker->setWatcherId($watcherId);
@@ -132,30 +135,29 @@ class QueueComponent extends \yii\base\Component implements \yii\queue\interface
     public function startDaemon()
     {
         \Amp\run(function () {
-
             $this->setPid(getmypid());
 
-            echo "Queue Daemon is started with PID: " . $this->getPid() . "\n\n";
-
-            \Amp\onSignal(SIGINT, function () {
-                \Amp\stop();
-                throw new QueueException("Queue daemon terminate. PID: {$this->getPid()}\n\n");
-            });
+            // Checking if Unix, so it can use the SIGINT
+            if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+                \Amp\onSignal(SIGINT, function () use (&$worker) {
+                    echo "Worker {$this->getPid()} Terminated";
+                    \Amp\stop();
+                });
+            }
 
             foreach ($this->getChannelNamesList() as $channelName) {
                 $channel = $this->getChannel($channelName);
-
-                \Amp\repeat(function ($watcherId) use ($channel) {
-
+                $i = 0;
+                \Amp\repeat(function ($watcherId) use ($channel, &$i) {
                     if ($message = $channel->pop()) {
                         $this->processMessage($message, $watcherId);
                         return true;
                     } else {
                         return false;
                     }
-
                 }, $this->timeout);
             }
+
         });
     }
 }

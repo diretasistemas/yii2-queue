@@ -10,9 +10,6 @@ namespace yii\queue\components;
 
 
 use yii\base\Component;
-use yii\base\Controller;
-use yii\base\InvalidConfigException;
-use yii\queue\exceptions\ChannelException;
 use yii\queue\exceptions\WorkerException;
 use yii\queue\interfaces\WorkerInterface;
 use yii\queue\models\MessageModel;
@@ -169,9 +166,16 @@ class WorkerComponent extends Component implements WorkerInterface
     public function run()
     {
         $message = $this->getMessage();
-
         if ($this->methodInClassValidate($this::$actionClassName, $message->method)) {
-            return $this->argumentsValidate($this::$actionClassName, $message->method, $message->arguments) ? call_user_func_array(array($this::$actionClassName, $message->method), $message->arguments) : false;
+            if ($this->argumentsValidate($this::$actionClassName, $message->method, $message->arguments)) {
+                $namespace = $this::$actionClassName;
+                $job = new $namespace('jobs', 'jobs', []);
+                $job->{$message->method}($message->arguments[0]);
+                return true;
+            } else {
+                return false;
+            }
+            // return $this->argumentsValidate($this::$actionClassName, $message->method, $message->arguments) ? call_user_func_array(array($this::$actionClassName, $message->method), $message->arguments) : false;
         } else {
             throw new WorkerException("Method `{$message->method}` not exist in class `{$this::$actionClassName}`");
         }
